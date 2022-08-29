@@ -16,7 +16,11 @@ import pprint
 import datetime
 
 # ボットトークンとソケットモードハンドラーを使ってアプリを初期化します
-app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
+json_open = open(f'env.json', 'r')
+result = json.load(json_open)
+SLACK_BOT_TOKEN = result["SLACK_BOT_TOKEN"]
+SLACK_APP_TOKEN = result["SLACK_APP_TOKEN"]
+app = App(token=SLACK_BOT_TOKEN)
 
 # 'hello' を含むメッセージをリッスンします
 # 指定可能なリスナーのメソッド引数の一覧は以下のモジュールドキュメントを参考にしてください：
@@ -528,4 +532,4 @@ def handle_view_delete_events(ack, body, logger, client):
 
 # アプリを起動します
 if __name__ == "__main__":
-    SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
+    SocketModeHandler(app, SLACK_APP_TOKEN).start()
