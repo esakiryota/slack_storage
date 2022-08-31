@@ -14,6 +14,8 @@ from repositories.channelsRepository import ChannelsRepository
 from slack_sdk.errors import SlackApiError
 import pprint
 import datetime
+from views.app_home_view import AppHomeView
+from views.modal_view import ModalView
 
 # ボットトークンとソケットモードハンドラーを使ってアプリを初期化します
 json_open = open(f'env.json', 'r')
@@ -26,125 +28,23 @@ app = App(token=SLACK_BOT_TOKEN)
 # 指定可能なリスナーのメソッド引数の一覧は以下のモジュールドキュメントを参考にしてください：
 # https://slack.dev/bolt-python/api-docs/slack_bolt/kwargs_injection/args.html
 @app.event("app_home_opened")
-def update_home_tab(client, event, logger):
+def update_home_tab(client, body, event, logger):
     try:
     # views.publish is the method that your app uses to push a view to the Home tab
+        ch_rps = ChannelsRepository()
+        msg_rps = MessagesRepository()
+        # pprint.pprint(body)
+        team_id = body["team_id"]
+        storage_bool = ch_rps.get_storage_bool(team_id)
+        channel_list = ch_rps.get_channels_info(client, team_id)
+        messages_info_list = msg_rps.get_messasges_info_list(team_id, channel_list)
+        view_cls = AppHomeView()
+        view = view_cls.init_app_home_view(storage_bool, messages_info_list, channel_list)
         client.views_publish(
             # the user that opened your app's app home
             user_id=event["user"],
             # the view object that appears in the app home
-            view={
-                "type": "home",
-                "callback_id": "home_view",
-
-                # body of the view
-                "blocks": [
-                    {
-			"type": "header",
-			"text": {
-				"type": "plain_text",
-				"text": "説明",
-			}
-		},
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "このアプリでは削除、または非表示となったメッセージを保存し、管理するアプリです。フリープランでslackを使っている方や、slackのメッセージのバックアップを取っておきたい方におすすめです。\n"
-                        }
-                    },{
-                        "type": "divider"
-                    },{
-			"type": "header",
-			"text": {
-				"type": "plain_text",
-				"text": "始め方",
-			}
-		},
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "1. ストレージを作成をクリック\n2. ストレージを登録をクリック\n3. 保存したいチャンネルを選ぶ\n"
-                        }
-                    },{
-                        "type": "divider"
-                    },{
-			"type": "header",
-			"text": {
-				"type": "plain_text",
-				"text": "ストレージの管理",
-			}
-		},
-        {
-			"type": "actions",
-			"elements": [
-                {
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "ストレージの作成"
-					},
-					"value": "create",
-					"action_id": "create_storage_action"
-				},{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "ストレージの登録"
-					},
-					"value": "register",
-					"action_id": "register_storage_action"
-				},{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "ストレージの削除"
-					},
-					"value": "delete",
-					"action_id": "delete_storage_action"
-				}
-			]
-		},{
-                        "type": "divider"
-                    },{
-			"type": "header",
-			"text": {
-				"type": "plain_text",
-				"text": "メッセージ",
-			}
-		},{
-			"type": "actions",
-			"elements": [
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "メッセージの検索"
-					},
-					"value": "search_message",
-					"action_id": "search_message"
-				}
-			]
-		},{
-                        "type": "divider"
-                    },{
-			"type": "actions",
-			"elements": [
-				{
-					"type": "button",
-					"text": {
-						"type": "plain_text",
-						"text": "テストの実行"
-					},
-					"value": "test_action",
-					"action_id": "test_action"
-				}
-			]
-		}
-    
-                ]
-            }
+            view=view
         )
     except Exception as e:
         logger.error(f"Error publishing home tab: {e}")
@@ -231,94 +131,11 @@ def handle_search_message_action(ack, body, logger, client):
         }
         options.append(option)
         
-
+    view_cls = ModalView()
+    view = view_cls.init_search_message_modal_view(options)
     client.views_open(
         trigger_id=body["trigger_id"],
-        view={
-            "type": "modal",
-            "callback_id": "view_search_message",
-	"title": {
-		"type": "plain_text",
-		"text": "My App"
-	},
-	"submit": {
-		"type": "plain_text",
-		"text": "検索"
-	},
-	"close": {
-		"type": "plain_text",
-		"text": "閉じる",
-	},
-	"blocks": [
-		{
-			"type": "input",
-            "block_id": "user_input",
-			"element": {
-				"type": "multi_users_select",
-				"placeholder": {
-					"type": "plain_text",
-					"text": "ユーザーを選択",
-				},
-				"action_id": "input_user"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "ユーザー",
-			}
-		},
-		{
-			"type": "input",
-            "block_id": "date_before_input",
-			"element": {
-				"type": "datepicker",
-				"initial_date": "2022-08-22",
-				"placeholder": {
-					"type": "plain_text",
-					"text": "日付を選択"
-				},
-				"action_id": "input_date_before"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "日付（前）"
-			}
-		},
-        {
-			"type": "input",
-            "block_id": "date_after_input",
-			"element": {
-				"type": "datepicker",
-				"initial_date": "2022-08-22",
-				"placeholder": {
-					"type": "plain_text",
-					"text": "日付を選択"
-				},
-				"action_id": "input_date_after"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "日付（後）"
-			}
-		},
-        {
-			"type": "input",
-            "block_id": "channel_input",
-			"element": {
-				"type": "static_select",
-				"placeholder": {
-					"type": "plain_text",
-					"text": "チャンネル名"
-				},
-				"options": options,
-				"action_id": "input_channel"
-			},
-            "label": {
-				"type": "plain_text",
-				"text": "チャンネル"
-			}
-        }
-	]
-        }
+        view=view
     )
 
 @app.view("view_search_message")
@@ -334,35 +151,65 @@ def hundle_view_search_message_action(ack, body, logger, client):
 
     user = body["user"]["id"]
 
+    # pprint.pprint(body)
+
     ts_date_before = datetime.datetime.strptime(date_before, '%Y-%m-%d').timestamp()
     ts_date_after = datetime.datetime.strptime(date_after, '%Y-%m-%d').timestamp()
     messag_rps = MessagesRepository()
     user_actions = UserAnctions()
 
-    messages_result = messag_rps.search_message_in_storage(team_id, channel, selected_user_list, key_word, ts_date_before, ts_date_after)
+    messages_result = messag_rps.search_message_in_storage(team_id, channel, selected_user_list,  ts_date_before, ts_date_after)
 
     users_info = user_actions.get_users_icon_and_name(client, selected_user_list)
 
+    block_list = []
+
+    view_cls = AppHomeView()
+
     for result in messages_result:
-        blocks_and_text = messag_rps.create_message_block_and_text(result, users_info)
-        result = client.chat_postMessage(
-            channel=user,
-            blocks=blocks_and_text["blocks"],
-            text=blocks_and_text["text"],
-            unfurl_links=True,
-            unfurl_media=True
-        )
-        ts = result["message"]["ts"]
+        blocks_and_text = view_cls.create_message_block_view(result, users_info)
+        # result = client.chat_postMessage(
+        #     channel=user,
+        #     blocks=blocks_and_text["blocks"],
+        #     text=blocks_and_text["text"],
+        #     unfurl_links=True,
+        #     unfurl_media=True
+        # )
+        block_list.extend(blocks_and_text["blocks"])
+        # ts = result["message"]["ts"]
         for reply in blocks_and_text["thread"]:
-            blocks_and_text = messag_rps.create_message_block_and_text(reply, users_info)
-            client.chat_postMessage(
-            channel=user,
-            blocks=blocks_and_text["blocks"],
-            text=blocks_and_text["text"],
-            thread_ts=ts,
-            unfurl_links=True,
-            unfurl_media=True
-        )
+            blocks_and_text = view_cls.create_message_block_view(reply, users_info)
+            block_list.extend(blocks_and_text["blocks"])
+        #     client.chat_postMessage(
+        #     channel=user,
+        #     blocks=blocks_and_text["blocks"],
+        #     text=blocks_and_text["text"],
+        #     thread_ts=ts,
+        #     unfurl_links=True,
+        #     unfurl_media=True
+        # )
+    # view = {
+    #         "type": "home",
+    #         "callback_id": "home_view",
+    #         "title": {"type": "plain_text", "text": "My App"},
+    #         # body of the view
+    #         "blocks": block_list
+    #     }
+    ch_rps = ChannelsRepository()
+    msg_rps = MessagesRepository()
+    storage_bool = ch_rps.get_storage_bool(team_id)
+    channel_list = ch_rps.get_channels_info(client, team_id)
+    messages_info_list = msg_rps.get_messasges_info_list(team_id, channel_list)
+    view_cls = AppHomeView()
+    view = view_cls.init_app_home_view(storage_bool, messages_info_list, channel_list)
+    view["blocks"].extend(block_list)
+    client.views_publish(
+            # the user that opened your app's app home
+            user_id=user,
+            # the view object that appears in the app home
+            view=view
+    )
+
 
 @app.action("create_storage_action")
 def create_storage_action(ack, body, logger, client):
@@ -395,6 +242,8 @@ def register_storage_action(ack, body, logger, client):
 						"value": channel["id"]
 					}
             options.append(option)
+    view_cls = ModalView()
+    view = view_cls.init_register_storage_modal_view(options)
 
     if not options:
         msg = "登録するチャンネルがありません。"
@@ -404,32 +253,7 @@ def register_storage_action(ack, body, logger, client):
         # 受け取りから 3 秒以内に有効な trigger_id を渡す
         trigger_id=body["trigger_id"],
         # ビューのペイロード
-        view={
-            "type": "modal",
-            # ビューの識別子
-            "callback_id": "view_create",
-            "title": {"type": "plain_text", "text":"My App"},
-            "submit": {"type": "plain_text", "text":"登録"},
-            "blocks": [
-                {
-			"type": "input",
-            "block_id": "input_create",
-			"element": {
-				"type": "static_select",
-				"placeholder": {
-					"type": "plain_text",
-					"text": "Select an item"
-				},
-				"options": options,
-				"action_id": "create_input"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "チャンネル"
-			}
-		}
-            ]
-        }
+        view=view
     )
 
 @app.view("view_create")
@@ -474,7 +298,9 @@ def delete_storage_action(ack, body, client):
 						"value": channel["id"]
 					}
             options.append(option)
-
+    
+    view_cls = ModalView()
+    view = view_cls.init_delete_storage_modal_view(options)
     if not options:
         msg = "削除するチャンネルがありません。"
         client.chat_postMessage(channel=user, text=msg)
@@ -483,41 +309,14 @@ def delete_storage_action(ack, body, client):
         # 受け取りから 3 秒以内に有効な trigger_id を渡す
         trigger_id=body["trigger_id"],
         # ビューのペイロード
-        view={
-            "type": "modal",
-            # ビューの識別子
-            "callback_id": "view_delete",
-            "title": {"type": "plain_text", "text":"My App"},
-            "submit": {"type": "plain_text", "text":"削除"},
-            "blocks": [
-                {
-			"type": "input",
-            "block_id": "input_delete",
-			"element": {
-				"type": "static_select",
-				"placeholder": {
-					"type": "plain_text",
-					"text": "Select an item"
-				},
-				"options": options,
-				"action_id": "delete_input"
-			},
-			"label": {
-				"type": "plain_text",
-				"text": "Label"
-			}
-		}
-            ]
-        }
+        view=view
     )
 
 @app.view("view_delete")
 def handle_view_delete_events(ack, body, logger, client):
     ack()
-    # hopes_and_dreams = view["state"]["values"]["input_c"]["create_input"]
     logger.info(body)
     user = body["user"]["id"]
-    # client.chat_postMessage(channel=user, text=hopes_and_dreams)
     try :
         messages_rps = MessagesRepository()
         channel_id = body["view"]["state"]["values"]["input_delete"]["delete_input"]["selected_option"]["value"]
@@ -529,6 +328,25 @@ def handle_view_delete_events(ack, body, logger, client):
         logger.error("Error creating conversation: {}".format(e))
         msg = f"チャンネル{name}をアーカイブできませんでした。"
         client.chat_postMessage(channel=user, text=msg)
+
+@app.action("send_message_action")
+def handle_send_message_action(ack, body, logger, client):
+    ack()
+    ts = body["actions"][0]["value"]
+    msg_rps = MessagesRepository()
+    ch_rps = ChannelsRepository()
+    team_id = body["team"]["id"]
+    user = body["user"]["id"]
+    channel_list = ch_rps.get_channels(team_id)
+    data = msg_rps.get_message_by_ts(team_id, channel_list, ts)
+    blocks_and_text = msg_rps.create_message_block_and_text(data)
+    result = client.chat_postMessage(
+            channel=user,
+            blocks=blocks_and_text["blocks"],
+            text=blocks_and_text["text"],
+            unfurl_links=True,
+            unfurl_media=True
+        )
 
 # アプリを起動します
 if __name__ == "__main__":

@@ -44,5 +44,12 @@ class ChannelsRepository():
         
         return result
 
+    def get_storage_bool(self, team_id):
+        storages = os.listdir(f'./storage/')
+        if team_id in storages:
+            return True
+        else:
+            return False
+
                     
     

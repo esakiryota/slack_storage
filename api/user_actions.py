@@ -36,7 +36,7 @@ class UserAnctions():
         user_list = self.get_user_list(client)
         user_result = {}
         for user in user_list:
-            user_result[user["id"]] = {"name": user["real_name"], "icon": user["profile"]["image_512"]}
+            user_result[user["id"]] = {"name": user["name"], "icon": user["profile"]["image_512"]}
         
         return user_result
 

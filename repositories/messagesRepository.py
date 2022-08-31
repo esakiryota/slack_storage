@@ -5,6 +5,7 @@ from pprint import pprint
 from unittest import result
 import datetime
 import shutil
+from .channelsRepository import ChannelsRepository
 
 class MessagesRepository():
     def __init__(self) -> None:
@@ -63,7 +64,7 @@ class MessagesRepository():
 
         return result
     
-    def search_message_in_storage(self, name, channel, users=[], str="", ts_before="", ts_after=""):
+    def search_message_in_storage(self, name, channel, users=[], ts_before="", ts_after=""):
         messages = self.get_all_message_storages(name, channel)
         message_to_send_before = []
         for message in messages:
@@ -102,10 +103,6 @@ class MessagesRepository():
                 if data_to_send["user"] not in users:
                     continue
 
-            if str != "":
-                if str not in data_to_send["text"]:
-                    continue
-
             if ts_before != "" and ts_after != "":
                 if data_to_send["ts"] < ts_before or data_to_send["ts"] > ts_after:
                     continue
@@ -116,21 +113,26 @@ class MessagesRepository():
         
         return message_to_send_after
     
-    def create_message_block_and_text(self, data, users_info):
+    def create_message_block_and_text(self, data, users_info={}):
         blocks = []
         text = ""
         result = {}
-        if "user" in data:
+        if "user" in data and users_info != {}:
             user_text = f"送信者: {users_info[data['user']]['name']}"
             block = {"type": "context","elements": [{"type": "plain_text","text":  user_text}]}
             blocks.append(block)
         if "text" in data:
+            text = ""
+            if data["text"] == "":
+                text = "no text"
+            else :
+                text = data["text"]
             block = {
 			"type": "section",
 			"fields": [
 				{
 					"type": "mrkdwn",
-					"text": data["text"]
+					"text": text
 				}
 			]
 		}
@@ -150,6 +152,80 @@ class MessagesRepository():
         result["thread"] = data["thread"]
         
         return result
+
+    def get_messasges_info(self, name, channel, channel_name):
+        messages = self.get_all_message_storages(name, channel)
+        ch_rps = ChannelsRepository()
+        channel_list = ch_rps.get_channels_info
+        latest_ts = 0
+        oldest_ts = 10000000000
+        file_num = 0
+        for message in messages:
+            if float(message["ts"]) > latest_ts:
+                latest_ts = float(message["ts"])
+            if float(message["ts"]) < oldest_ts:
+                oldest_ts = float(message["ts"])
+            if "files" in message:
+                file_num += len(message["files"])
+        message_num = len(messages)
+        message_info = {
+                        "name": channel_name,
+                        "id": channel,
+                        "latest": datetime.datetime.fromtimestamp(latest_ts).replace(microsecond = 0),
+                        "oldest": datetime.datetime.fromtimestamp(oldest_ts).replace(microsecond = 0), 
+                        "message_num": message_num, 
+                        "file_num": file_num
+                        }
+        return message_info
+
+    def get_messasges_info_list(self, name, channel_list):
+        messages_info_list = []
+        for channel_info in channel_list:
+            messages_info = self.get_messasges_info(name, channel_info["id"], channel_info["name"])
+            messages_info_list.append(messages_info)
+        
+        return messages_info_list
+    
+    def get_message_by_ts(self, name, channel_list, ts):
+        all_messages = []
+        for channel in channel_list:
+            messages = self.get_all_message_storages(name, channel)
+            all_messages.extend(messages)
+        message_data = {"type": "", "user": ""}
+        for message in all_messages:
+            if str(ts) == message["ts"]:
+                pprint(message)
+                if "type" in message:
+                    message_data["type"] = message["type"]
+                if "user" in message:
+                    message_data["user"] = message["user"]
+                if "blocks" in message:
+                    message_data["blocks"] = message["blocks"]
+                if "files" in message:
+                    files = []
+                    for file in message["files"]:
+                        if "permalink" in file:
+                            files.append(file["permalink"])
+                    message_data["files"] = files
+                if "ts" in message:
+                    message_data["ts"] = float(message["ts"])
+                if "thread_ts" in message and "reply_count" not in message:
+                    message_data["thread_ts"] = float(message["thread_ts"])
+                message_data["text"] = message["text"]
+                message_data["thread"] = []
+                break
+        
+        return message_data
+        
+
+
+
+
+
+            
+        
+
+
 
 
 
