@@ -150,7 +150,6 @@ class MessageAction() :
                 if "thread_ts" in message:
                     thread_message_res = client.conversations_replies(channel=channel, ts=message["thread_ts"])
                     thread_message = thread_message_res["messages"]
-                    pprint(thread_message)
                     del thread_message[0]
                     thread_result.extend(thread_message)
 

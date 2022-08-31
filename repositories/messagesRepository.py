@@ -194,7 +194,6 @@ class MessagesRepository():
         message_data = {"type": "", "user": ""}
         for message in all_messages:
             if str(ts) == message["ts"]:
-                pprint(message)
                 if "type" in message:
                     message_data["type"] = message["type"]
                 if "user" in message:
