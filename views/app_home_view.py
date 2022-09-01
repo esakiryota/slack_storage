@@ -9,7 +9,7 @@ class AppHomeView():
     def __init__(self) -> None:
         pass
 
-    def init_app_home_view(self, storage_bool=False, messages_info_list=[], channel_list=[]):
+    def init_app_home_view(self, storage_bool=False, messages_info_list=[], channel_list=[], message_list=[]):
         storage_manage_blocks = [{"type": "header","text": {"type": "plain_text","text": "ストレージの管理"}}]
         if storage_bool == False:
             storage_manage_blocks.append({
@@ -60,9 +60,11 @@ class AppHomeView():
         message_info_blocks = self.storage_infomation_view(messages_info_list)
 
         search_condition_block = self.search_condition_view()
+        view["blocks"].extend(message_search_block)
+        if message_list != []:
+            view["blocks"].extend(message_list)
         view["blocks"].extend(storage_manage_blocks)
         view["blocks"].extend(message_info_blocks)
-        view["blocks"].extend(message_search_block)
         # view["blocks"].extend(search_condition_block)
         return view
 
