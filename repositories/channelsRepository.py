@@ -44,6 +44,16 @@ class ChannelsRepository():
         
         return result
 
+    def get_channel_name_by_id(self, client, id):
+        channel_list = client.conversations_list()
+        channel_list = channel_list["channels"]
+        channel_name = ""
+        for channel in channel_list:
+            if channel["id"] == id:
+                channel_name = channel["name"]
+        
+        return channel_name
+
     def get_storage_bool(self, team_id):
         storages = os.listdir(f'./storage/')
         if team_id in storages:

@@ -79,31 +79,34 @@ class AppHomeView():
                             "text": f"*#{message_info['name']}*\nメッセージ数: {message_info['message_num']}\n日付範囲: {message_info['oldest']}〜{message_info['latest']}\nファイル数: {message_info['file_num']}"
                         }
                         },
-        #     {
-		# 	"type": "actions",
-		# 	"elements": [
-		# 		{
-		# 			"type": "button",
-		# 			"text": {
-		# 				"type": "plain_text",
-		# 				"text": "詳細",
-		# 				"emoji": True
-		# 			},
-		# 			"style": "primary",
-		# 			"value": "approve"
-		# 		},
-		# 		{
-		# 			"type": "button",
-		# 			"text": {
-		# 				"type": "plain_text",
-		# 				"text": "削除",
-		# 				"emoji": True
-		# 			},
-        #             "style": "danger",
-		# 			"value": "details"
-		# 		},
-		# 	]
-		# },
+            {
+			"type": "actions",
+			"elements": [
+
+				{
+
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Download",
+						"emoji": True
+					},
+					"style": "primary",
+					"value": f"{message_info['id']}",
+                    "action_id": "data_download"
+				},
+				# {
+				# 	"type": "button",
+				# 	"text": {
+				# 		"type": "plain_text",
+				# 		"text": "削除",
+				# 		"emoji": True
+				# 	},
+                #     "style": "danger",
+				# 	"value": "details"
+				# },
+			]
+		},
         {
 			"type": "divider"
 		}

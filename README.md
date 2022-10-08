@@ -14,3 +14,10 @@ $ python3 app.py
 $ export SLACK_BOT_TOKEN=xoxb-XXX
 $ export SLACK_APP_TOKEN=xapp-XXX
 ```
+
+### 本番環境
+システムの再起動
+```
+$ sudo systemctl reload supervisor
+$ sudo systemctl restart supervisor
+```

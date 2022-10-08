@@ -1,6 +1,7 @@
 from concurrent.futures import thread
 from email import message
 from http import client
+from itertools import chain
 import os
 import json
 from slack_bolt import App
@@ -37,6 +38,8 @@ def update_home_tab(client, body, event, logger):
         # pprint.pprint(body)
         team_id = body["team_id"]
         storage_bool = ch_rps.get_storage_bool(team_id)
+        if storage_bool == False:
+            ch_rps.create_team_storage(team_id)
         channel_list = ch_rps.get_channels_info(client, team_id)
         messages_info_list = msg_rps.get_messasges_info_list(team_id, channel_list)
         view_cls = AppHomeView()
@@ -48,10 +51,10 @@ def update_home_tab(client, body, event, logger):
             view=view
         )
         # 自分に向けてDMで知らせる
-        client.chat_postMessage(channel="U01TNJL4PQ9", text="ホームが開かれました")
+        # client.chat_postMessage(channel="U01TNJL4PQ9", text="ホームが開かれました")
     except Exception as e:
         logger.error(f"Error publishing home tab: {e}")
-        client.chat_postMessage(channel="U01TNJL4PQ9", text=f"Error publishing home tab: {e}")
+        # client.chat_postMessage(channel="U01TNJL4PQ9", text=f"Error publishing home tab: {e}")
 
 
 @app.action('test_action')
@@ -210,8 +213,6 @@ def create_storage_action(ack, body, logger, client):
     except SlackApiError as e:
         pprint.pprint("Error creating conversation: {}".format(e))
         client.chat_postMessage(channel="U01TNJL4PQ9", text=f"Error publishing home tab: {e}")
-        # client.chat_postMessage(channel=user, text=msg)  
-
 
 @app.action("register_storage_action")
 def register_storage_action(ack, body, logger, client):
@@ -348,7 +349,29 @@ def handle_send_message_action(ack, body, logger, client):
             )
     except SlackApiError as e:
         logger.error("Error creating conversation: {}".format(e))
-        client.chat_postMessage(channel="U01TNJL4PQ9", text=f"Error publishing home tab: {e}")
+        # client.chat_postMessage(channel="U01TNJL4PQ9", 
+
+@app.action("data_download")
+def handle_data_download_action(ack, body, logger, client):
+    try :
+        ack()
+        user = body["user"]["id"]
+        team_id = body["team"]["id"]
+        ch_rps = ChannelsRepository()
+        pprint.pprint(body)
+        channel_id = body["actions"][0]["value"]
+        channel_name = ch_rps.get_channel_name_by_id(client, channel_id)
+        client.chat_postMessage(channel=user, text="OK")
+        msg_rps = MessagesRepository()
+        usr_act = UserAnctions()
+        users_list = usr_act.get_user_info_for_message(client)
+        message_data = msg_rps.message_data_for_export_file(team_id, channel_id)
+        arrange_message_data = msg_rps.arrange_message_data(message_data, users_list)
+        export_file = msg_rps.create_export_file(team_id, channel_id, channel_name, arrange_message_data)
+        new_file = client.files_upload(channels=user, title="メッセージファイル",file=f"./storage/{team_id}/{channel_id}/{channel_name}.json" )
+    except SlackApiError as e:
+        logger.error("Error creating conversation: {}".format(e))
+        client.chat_postMessage(channel=user, text=f"Error publishing home tab: {e}")
 
 # アプリを起動します
 if __name__ == "__main__":

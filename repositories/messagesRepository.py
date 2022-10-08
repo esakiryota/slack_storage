@@ -117,9 +117,12 @@ class MessagesRepository():
         blocks = []
         text = ""
         result = {}
+        json_file_content = {}
+        json_file_content_list = []
         if "user" in data and users_info != {}:
             user_text = f"送信者: {users_info[data['user']]['name']}"
             block = {"type": "context","elements": [{"type": "plain_text","text":  user_text}]}
+            json_file_content["user"] = users_info[data['user']]['name']
             blocks.append(block)
         if "text" in data:
             text = ""
@@ -137,11 +140,14 @@ class MessagesRepository():
 			]
 		}
             text += data["text"]
+            json_file_content["text"] = data["text"]
             blocks.append(block)
         if "files" in data:
             for file in data["files"]:
                 text += ", " + file
+            json_file_content["files"] = text
         ts_text = f"送信日時: {datetime.datetime.fromtimestamp(data['ts']).replace(microsecond = 0)}"
+        json_file_content["time"] = ts_text
         block = {"type": "context","elements": [{"type": "plain_text","text":  ts_text}]}
         blocks.append(block)
         divider = {"type": "divider"}
@@ -150,6 +156,8 @@ class MessagesRepository():
         result["blocks"] = blocks 
         result["text"] = text
         result["thread"] = data["thread"]
+
+        json_file_content_list.append()
         
         return result
 
@@ -215,7 +223,94 @@ class MessagesRepository():
                 break
         
         return message_data
+
+
+    def create_export_file(self, name, channel, channel_name, data):
+        msg = {}
+        with open(f'./storage/{name}/{channel}/{channel_name}.json', "w") as f:
+            json.dump(data, f)
+            msg["message"] = "作成しました"
+        return msg
+    
+    def message_data_for_export_file(self, name, channel):
+        messages = self.get_all_message_storages(name, channel)
+        message_to_send_before = []
+        for message in messages:
+            message_data = {"type": "", "user": ""}
+            if "type" in message:
+                message_data["type"] = message["type"]
+            if "user" in message:
+                message_data["user"] = message["user"]
+            if "blocks" in message:
+                message_data["blocks"] = message["blocks"]
+            if "files" in message:
+                files = []
+                for file in message["files"]:
+                    if "url_private_download" in file:
+                        files.append(file["url_private_download"])
+                message_data["files"] = files
+            if "ts" in message:
+                message_data["ts"] = float(message["ts"])
+            if "thread_ts" in message and "reply_count" not in message:
+                message_data["thread_ts"] = float(message["thread_ts"])
+            message_data["text"] = message["text"]
+            message_data["thread"] = []
+            message_to_send_before.append(message_data)
+
+        for data_to_send in message_to_send_before:
+            if "thread_ts" in data_to_send:
+                i = 0
+                for message in message_to_send_before:
+                    if data_to_send["thread_ts"] == message["ts"]:
+                        message_to_send_before[i]["thread"].append(data_to_send)
+                    i += 1
         
+        return message_to_send_before
+
+    def create_message_block_for_export(self, data, users_info):
+        text = ""
+        data_for_export = []
+        file_num = 0
+        if "user" in data and data["user"] in users_info:
+            user_text = {"user": f"送信者: {users_info[data['user']]['name']}"}
+            data_for_export.append(user_text)
+        if "text" in data:
+            text = ""
+            if data["text"] == "":
+                text = "no text"
+            else :
+                text = data["text"]
+            block = {
+			"type": "section",
+			"fields": [
+				{
+					"type": "mrkdwn",
+					"text": text
+				}
+			]
+		}
+            text += data["text"]
+        if "files" in data:
+            file_link = []
+            for file in data["files"]:
+                file_num += 1
+                file_link.append(file)
+            block = {"text": f"ファイル数: {str(file_num)}個", "download_link": file_link}
+            data_for_export.append(block)
+        all_text = {"text": text}
+        data_for_export.append(all_text)
+        ts_text = {"time": f"送信日時: {datetime.datetime.fromtimestamp(data['ts']).replace(microsecond = 0)}"}
+        data_for_export.append(ts_text)
+        
+        return data_for_export
+
+    def arrange_message_data(self, message_data, user_info):
+        result = []
+        for data in message_data:
+            block = self.create_message_block_for_export(data, user_info)
+            result.append(block)
+
+        return result
 
 
 
