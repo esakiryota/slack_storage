@@ -269,11 +269,11 @@ class MessagesRepository():
 
     def create_message_block_for_export(self, data, users_info):
         text = ""
-        data_for_export = []
+        data_for_export = {}
         file_num = 0
         if "user" in data and data["user"] in users_info:
-            user_text = {"user": f"送信者: {users_info[data['user']]['name']}"}
-            data_for_export.append(user_text)
+            user_text = f"送信者: {users_info[data['user']]['name']}"
+            data_for_export["user"] = user_text
         if "text" in data:
             text = ""
             if data["text"] == "":
@@ -296,11 +296,10 @@ class MessagesRepository():
                 file_num += 1
                 file_link.append(file)
             block = {"text": f"ファイル数: {str(file_num)}個", "download_link": file_link}
-            data_for_export.append(block)
-        all_text = {"text": text}
-        data_for_export.append(all_text)
-        ts_text = {"time": f"送信日時: {datetime.datetime.fromtimestamp(data['ts']).replace(microsecond = 0)}"}
-        data_for_export.append(ts_text)
+            data_for_export["file_info"] = block
+        data_for_export["text"] = text
+        ts_text = f"送信日時: {datetime.datetime.fromtimestamp(data['ts']).replace(microsecond = 0)}"
+        data_for_export["time"] = ts_text
         
         return data_for_export
 
