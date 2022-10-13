@@ -280,16 +280,7 @@ class MessagesRepository():
                 text = "no text"
             else :
                 text = data["text"]
-            block = {
-			"type": "section",
-			"fields": [
-				{
-					"type": "mrkdwn",
-					"text": text
-				}
-			]
-		}
-            text += data["text"]
+                pprint(text)
         if "files" in data:
             file_link = []
             for file in data["files"]:

@@ -47,7 +47,7 @@ class AppHomeView():
 
         storage_manage_blocks.append(divider)
 
-        message_search_block = self.message_search_view(channel_list)
+        # message_search_block = self.message_search_view(channel_list)
 
         view = {
             "type": "home",
@@ -60,7 +60,7 @@ class AppHomeView():
         message_info_blocks = self.storage_infomation_view(messages_info_list)
 
         search_condition_block = self.search_condition_view()
-        view["blocks"].extend(message_search_block)
+        # view["blocks"].extend(message_search_block)
         if message_list != []:
             view["blocks"].extend(message_list)
         view["blocks"].extend(storage_manage_blocks)
